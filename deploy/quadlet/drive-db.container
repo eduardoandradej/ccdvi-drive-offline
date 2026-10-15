@@ -1,0 +1,18 @@
+[Unit]
+Description=CCDVI Drive - PostgreSQL
+
+[Container]
+ContainerName=drive-db
+Image=docker.io/library/postgres:16.15-bookworm
+Network=ccdvi-drive.network
+Volume=drive-db.volume:/var/lib/postgresql/data
+Environment=POSTGRES_DB=nextcloud POSTGRES_USER=nextcloud POSTGRES_PASSWORD_FILE=/run/secrets/drive_db_password
+Secret=drive_db_password
+HealthCmd=pg_isready -U nextcloud -d nextcloud
+HealthInterval=10s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

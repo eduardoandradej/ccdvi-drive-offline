@@ -1,0 +1,13 @@
+[Unit]
+Description=CCDVI Drive - Redis (cache e travamento de arquivos)
+
+[Container]
+ContainerName=drive-redis
+Image=docker.io/library/redis:7.4.11-alpine
+Network=ccdvi-drive.network
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

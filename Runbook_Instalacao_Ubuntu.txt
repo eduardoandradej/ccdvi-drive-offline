@@ -1,0 +1,325 @@
+===============================================================================
+ CCDVI DRIVE (NEXTCLOUD) - CCDVI/SEPOL
+ RUNBOOK DE INSTALACAO E EXECUCAO - UBUNTU 24.04 LTS
+===============================================================================
+
+ Versao do runbook ....: 1.0 (15/10/2026)
+ Componentes ..........: Nextcloud 31.0.14, PostgreSQL 16.15, Redis 7.4.11
+ Modo de execucao .....: conteineres Podman gerenciados pelo systemd (Quadlet),
+                         no MESMO servidor do Sistema DVI, porta 8081.
+ Finalidade ...........: documentos de APOIO (formularios, manuais, atas,
+                         escalas). Dados de casos ficam SOMENTE no Sistema DVI.
+
+ Validacao: roteiro executado em Ubuntu 24.04.5 LTS com Podman 4.9.3, do zero,
+ incluindo usuarios, formularios, teste automatico (19 verificacoes aprovadas)
+ e backup/restauracao em instalacao nova. O ambiente de validacao nao tinha
+ systemd ativo; o inicio automatico no boot (passo 9) deve ser confirmado na
+ primeira instalacao no servidor.
+
+ Convencoes:
+   $  comando executado como usuario comum (com permissao de sudo)
+   #  comentario (nao digite)
+   <...> valor que voce deve escolher
+
+
+-------------------------------------------------------------------------------
+ 0. REQUISITOS
+-------------------------------------------------------------------------------
+
+ - Ubuntu Server 24.04 LTS, 64 bits, com systemd (padrao do Ubuntu).
+ - Recursos ADICIONAIS aos do Sistema DVI: 2 GB de RAM e 10 GB de disco, mais
+   o espaco dos documentos que serao armazenados.
+ - Internet DURANTE A INSTALACAO para baixar cerca de 2,7 GB de imagens.
+   Para servidor sem internet, veja a secao 11.
+ - Porta 8081 livre (o Sistema DVI usa 5173 e 8080).
+
+ Tempo estimado: 15 a 30 minutos (depende do download).
+
+
+-------------------------------------------------------------------------------
+ 1. INSTALAR O PODMAN E O GIT
+-------------------------------------------------------------------------------
+
+ $ sudo apt update
+ $ sudo apt install -y podman git curl
+
+ # Conferir:
+ $ podman --version           # esperado: podman version 4.9.x ou superior
+ $ ls /usr/libexec/podman/quadlet
+       # deve existir (e o componente que integra o Podman ao systemd)
+
+
+-------------------------------------------------------------------------------
+ 2. BAIXAR O PROJETO
+-------------------------------------------------------------------------------
+
+ $ cd ~
+ $ git clone https://github.com/eduardoandradej/ccdvi-drive-offline.git
+ $ cd ccdvi-drive-offline
+
+ # Repositorio privado: o git pedira usuario e um token de acesso pessoal
+ # do GitHub (no lugar da senha).
+
+
+-------------------------------------------------------------------------------
+ 3. PREPARAR A LISTA DE USUARIOS (OPCIONAL, RECOMENDADO)
+-------------------------------------------------------------------------------
+
+ $ cp config/usuarios.exemplo.csv config/usuarios.csv
+ $ nano config/usuarios.csv
+
+ Uma linha por pessoa, no formato:
+
+   usuario;Nome Completo;Grupo1,Grupo2
+
+ Grupos disponiveis: DVI-Comando, DVI-AnteMortem, DVI-PostMortem, DVI-TIC.
+ Todos entram automaticamente tambem em DVI-Todos. Linhas iniciadas com "#"
+ sao ignoradas. Usuario: letras minusculas, numeros, ponto ou hifen.
+
+ Salve com Ctrl+O, Enter, e saia com Ctrl+X.
+
+ Os usuarios tambem podem ser criados depois, pela tela de administracao
+ (secao 8) ou executando de novo o passo 4 com a lista atualizada.
+
+
+-------------------------------------------------------------------------------
+ 4. INSTALAR
+-------------------------------------------------------------------------------
+
+ Um unico script faz tudo: gera senhas, cria os segredos do Podman, instala
+ os servicos no systemd, baixa as imagens, instala o Nextcloud e aplica a
+ configuracao do CCDVI (sem internet, pt-BR, grupos, pastas e politica).
+
+ Com usuarios e com os formularios INTERPOL do repositorio do Sistema DVI:
+
+ $ sudo scripts/instalar.sh --usuarios config/usuarios.csv \
+       --formularios ~/ccdvi-sistema-offline/docs
+
+ Sem usuarios e sem formularios (podem ser adicionados depois):
+
+ $ sudo scripts/instalar.sh
+
+ Opcional: para escolher a senha do administrador em vez de uma gerada,
+ coloque  DRIVE_SENHA_ADMIN='<SENHA>'  antes do comando, depois do sudo:
+ $ sudo DRIVE_SENHA_ADMIN='<SENHA>' scripts/instalar.sh
+
+ Sinais de sucesso, nesta ordem:
+
+   ==> 1/6 Verificando porta 8081
+   ==> 2/6 Preparando configuracao e senhas em /etc/ccdvi-drive
+   ==> 3/6 Criando segredos do Podman
+   ==> 4/6 Instalando unidades Quadlet em /etc/containers/systemd
+   ==> 5/6 Iniciando servicos ...
+       aguardando o Nextcloud ficar pronto...... pronto.
+   ==> 6/6 Aplicando a configuracao do CCDVI
+   ...
+   ==> Instalacao concluida
+       Endereco ...........: http://<IP>:8081
+       Administrador ......: admin
+       Senha do admin .....: <SENHA>   (guardada em /etc/ccdvi-drive/admin.senha)
+
+ ANOTE a senha do administrador. Ela fica guardada em
+ /etc/ccdvi-drive/admin.senha (acessivel somente pelo root).
+
+ As senhas iniciais dos usuarios do CSV ficam em:
+   /etc/ccdvi-drive/senhas-iniciais.txt
+ $ sudo cat /etc/ccdvi-drive/senhas-iniciais.txt
+ Entregue cada senha ao respectivo usuario e oriente a troca no primeiro
+ acesso (menu do usuario > Configuracoes pessoais > Seguranca).
+
+
+-------------------------------------------------------------------------------
+ 5. TESTAR
+-------------------------------------------------------------------------------
+
+ $ sudo scripts/testar.sh
+
+ Esperado na ultima linha:
+   RESULTADO: todos os testes aprovados.
+
+ O teste cria dois usuarios temporarios, confere servico, operacao sem
+ internet, pastas visiveis por equipe, pasta de formularios somente leitura e
+ bloqueio de links publicos, e remove os usuarios temporarios ao final.
+
+
+-------------------------------------------------------------------------------
+ 6. ACESSAR
+-------------------------------------------------------------------------------
+
+ 6.1 Descubra o IP do servidor:
+ $ hostname -I        # use o primeiro endereco, ex.: 192.168.10.20
+
+ 6.2 No navegador de qualquer notebook/tablet da rede local:
+       http://192.168.10.20:8081
+
+ 6.3 Firewall (se o ufw estiver ativo), liberando so a rede da operacao:
+ $ sudo ufw allow from 192.168.10.0/24 to any port 8081 proto tcp
+
+ 6.4 Entrar com:
+   - admin + senha do passo 4 (administracao), ou
+   - usuario do CSV + senha inicial.
+
+ 6.5 Cada usuario ve: "Formularios e Referencias" (somente leitura), "Geral"
+     e a pasta da sua equipe, alem do arquivo LEIA-ME_Politica_de_Uso.txt.
+
+ 6.6 Aplicativo de sincronizacao no notebook (opcional): instale o
+     "Nextcloud Desktop" e informe o endereco do passo 6.2.
+
+
+-------------------------------------------------------------------------------
+ 7. ADICIONAR FORMULARIOS E DOCUMENTOS DE REFERENCIA
+-------------------------------------------------------------------------------
+
+ Pela linha de comando (envia PDF, DOCX, ODT, XLSX, ODS e TXT de uma pasta):
+ $ sudo scripts/configurar.sh --formularios <PASTA_COM_ARQUIVOS>
+
+ Ou pelo navegador, entrando como admin e enviando para a pasta
+ "Formularios e Referencias".
+
+
+-------------------------------------------------------------------------------
+ 8. OPERACAO DO DIA A DIA
+-------------------------------------------------------------------------------
+
+ Situacao dos servicos:
+ $ sudo systemctl status drive-db drive-redis drive-app drive-cron --no-pager
+ $ sudo podman ps
+
+ Reiniciar o Drive:
+ $ sudo systemctl restart drive-app
+
+ Parar / iniciar tudo:
+ $ sudo systemctl stop drive-cron drive-app drive-redis drive-db
+ $ sudo systemctl start drive-db drive-redis drive-app drive-cron
+
+ Novos usuarios:
+   - Navegador: admin > menu do usuario > Contas > "Nova conta", marcando
+     o grupo DVI-Todos e o grupo da equipe; ou
+   - Acrescente as linhas no config/usuarios.csv e execute:
+ $ sudo scripts/configurar.sh --usuarios config/usuarios.csv
+       (usuarios ja existentes sao ignorados; as novas senhas iniciais sao
+        acrescentadas em /etc/ccdvi-drive/senhas-iniciais.txt)
+
+ Redefinir a senha de um usuario (inclusive do admin):
+ $ sudo podman exec -it -u www-data drive-app php occ user:resetpassword <usuario>
+
+ Registros (logs) em caso de problema:
+ $ sudo podman logs --tail 50 drive-app
+
+
+-------------------------------------------------------------------------------
+ 9. CONFIRMAR O INICIO AUTOMATICO NO BOOT (FAZER UMA VEZ)
+-------------------------------------------------------------------------------
+
+ $ sudo reboot
+ # depois que o servidor voltar (aguarde 1 a 2 minutos):
+ $ sudo podman ps --format "{{.Names}} {{.Status}}"
+       # esperado: drive-db, drive-redis, drive-app e drive-cron "Up"
+ $ curl -s http://localhost:8081/status.php
+       # esperado: texto contendo "installed":true
+
+ Se nao subirem sozinhos:
+ $ sudo systemctl start drive-db drive-redis drive-app drive-cron
+ e verifique:  sudo systemctl status drive-app --no-pager
+
+
+-------------------------------------------------------------------------------
+ 10. BACKUP E RESTAURACAO
+-------------------------------------------------------------------------------
+
+ Backup (banco + configuracao + arquivos, com hashes SHA-256). O Drive fica
+ em manutencao por alguns segundos durante a copia:
+ $ sudo scripts/backup.sh /srv/backups/drive
+       # gera /srv/backups/drive/ccdvi-drive-backup-<data>.tar e .sha256
+       # Recomendado: backup criptografado com a chave GPG institucional:
+ $ sudo DRIVE_BACKUP_GPG_RECIPIENT=<ID_DA_CHAVE> scripts/backup.sh /srv/backups/drive
+
+ ATENCAO: o backup contem o config.php, com credenciais internas. Guarde-o em
+ local protegido, de preferencia criptografado.
+
+ Restauracao (SUBSTITUI todo o conteudo atual do Drive):
+ $ sudo scripts/restaurar.sh /srv/backups/drive/ccdvi-drive-backup-<data>.tar
+       # pede para digitar RESTAURAR como confirmacao
+
+ Restaurar em OUTRO servidor: instale normalmente (passos 1 a 4, sem
+ --usuarios) e depois execute o restaurar.sh. Usuarios, senhas, pastas e
+ arquivos voltam como estavam na origem. A unica excecao e a conta admin,
+ que passa a usar a senha deste servidor (/etc/ccdvi-drive/admin.senha).
+
+
+-------------------------------------------------------------------------------
+ 11. SERVIDOR SEM INTERNET (INSTALACAO ISOLADA)
+-------------------------------------------------------------------------------
+
+ Em uma maquina COM internet e Podman:
+ $ sudo podman pull docker.io/library/nextcloud:31.0.14-apache
+ $ sudo podman pull docker.io/library/postgres:16.15-bookworm
+ $ sudo podman pull docker.io/library/redis:7.4.11-alpine
+ $ sudo podman save -m -o ccdvi-drive-imagens.tar \
+       docker.io/library/nextcloud:31.0.14-apache \
+       docker.io/library/postgres:16.15-bookworm \
+       docker.io/library/redis:7.4.11-alpine
+ $ sha256sum ccdvi-drive-imagens.tar > ccdvi-drive-imagens.tar.sha256
+
+ Leve os dois arquivos e uma copia deste repositorio (pasta inteira) por midia
+ autorizada. No servidor isolado (com o Podman ja instalado):
+ $ sha256sum -c ccdvi-drive-imagens.tar.sha256
+ $ sudo podman load -i ccdvi-drive-imagens.tar
+ e siga a partir do passo 3.
+
+
+-------------------------------------------------------------------------------
+ 12. SOLUCAO DE PROBLEMAS
+-------------------------------------------------------------------------------
+
+ "Execute com sudo"
+   -> Os scripts precisam de root:  sudo scripts/<nome>.sh
+
+ "A porta 8081 ja esta em uso por outro programa"
+   -> Descubra o programa:  sudo ss -ltnp | grep 8081
+      Encerre-o ou, se for uma instalacao anterior do Drive, use
+      sudo scripts/desinstalar.sh  e instale novamente.
+
+ Download das imagens falha com "toomanyrequests" ou 429
+   -> Limite de downloads anonimos do Docker Hub. Aguarde algumas horas ou
+      autentique-se com uma conta gratuita:  sudo podman login docker.io
+      e execute o passo 4 novamente.
+
+ "O Nextcloud nao ficou pronto em 900s"
+   -> Veja o motivo:  sudo podman logs --tail 50 drive-app
+      Em seguida execute o passo 4 novamente (e seguro repetir).
+
+ Navegador mostra "Acesso por meio de dominio nao confiavel"
+   -> O servidor mudou de IP ou o acesso usa outro nome. Inclua o endereco:
+ $ sudo podman exec -u www-data drive-app php occ config:system:set \
+       trusted_domains 10 --value=<NOVO_IP_OU_NOME>
+      e atualize OVERWRITECLIURL em /etc/ccdvi-drive/drive.env, depois:
+ $ sudo systemctl restart drive-app
+
+ Usuario nao ve "Formularios e Referencias" ou "Geral"
+   -> Confirme que ele esta no grupo DVI-Todos (admin > Contas). Ao criar
+      contas pelo navegador, marque o grupo DVI-Todos.
+
+ Esqueceu a senha do admin
+   -> sudo podman exec -it -u www-data drive-app php occ user:resetpassword admin
+
+ Recomecar do zero (APAGA todos os arquivos e usuarios do Drive):
+ $ sudo scripts/desinstalar.sh --tudo
+ $ sudo scripts/instalar.sh ...
+
+
+-------------------------------------------------------------------------------
+ 13. OBSERVACOES IMPORTANTES
+-------------------------------------------------------------------------------
+
+ - NAO armazene dados de casos (fichas AM/PM, fotos, documentos de
+   desaparecidos) no Drive. Use o Sistema DVI.
+ - Links publicos e compartilhamento com servidores externos estao
+   desativados de proposito. Nao os reative sem aprovacao da coordenacao.
+ - O Drive e o Sistema DVI sao independentes: cada um tem seu banco, seus
+   servicos e seu backup.
+ - Use somente dados ficticios ate a aprovacao institucional.
+
+===============================================================================
+ FIM DO RUNBOOK
+===============================================================================

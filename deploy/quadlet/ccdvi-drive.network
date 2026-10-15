@@ -1,0 +1,3 @@
+# Rede interna dos contêineres do CCDVI Drive. Somente drive-app publica porta na LAN.
+[Network]
+NetworkName=ccdvi-drive

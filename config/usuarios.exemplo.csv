@@ -1,0 +1,10 @@
+# usuario;nome completo;grupos (separados por vírgula)
+# Grupos disponíveis: DVI-Comando, DVI-AnteMortem, DVI-PostMortem, DVI-TIC
+# Todos os usuários entram automaticamente também no grupo DVI-Todos.
+# USUÁRIOS FICTÍCIOS para laboratório — substitua pelos reais na implantação.
+operador.am;Operadora AM Fictícia;DVI-AnteMortem
+operador.pm;Perito PM Fictício;DVI-PostMortem
+revisor;Revisora de Reconciliação Fictícia;DVI-Comando
+coordenador;Coordenador Fictício;DVI-Comando
+admin.tic;Administrador TIC Fictício;DVI-TIC
+perito.multi;Profissional Multibase Fictício;DVI-AnteMortem,DVI-PostMortem

@@ -1,0 +1,17 @@
+[Unit]
+Description=CCDVI Drive - tarefas em segundo plano (cron do Nextcloud)
+Requires=drive-app.service
+After=drive-app.service
+
+[Container]
+ContainerName=drive-cron
+Image=docker.io/library/nextcloud:31.0.14-apache
+Network=ccdvi-drive.network
+Volume=drive-html.volume:/var/www/html
+Exec=/cron.sh
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
