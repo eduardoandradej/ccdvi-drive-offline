@@ -1,0 +1,25 @@
+[Unit]
+Description=CCDVI Drive - Nextcloud
+Requires=drive-db.service drive-redis.service
+After=drive-db.service drive-redis.service
+
+[Container]
+ContainerName=drive-app
+Image=docker.io/library/nextcloud:31.0.14-apache
+Network=ccdvi-drive.network
+Volume=drive-html.volume:/var/www/html
+# Porta publicada na rede local. O Sistema DVI usa 5173/8080; o Drive usa 8081.
+PublishPort=8081:80
+EnvironmentFile=/etc/ccdvi-drive/drive.env
+Environment=POSTGRES_HOST=drive-db POSTGRES_DB=nextcloud POSTGRES_USER=nextcloud POSTGRES_PASSWORD_FILE=/run/secrets/drive_db_password
+Environment=NEXTCLOUD_ADMIN_USER=admin NEXTCLOUD_ADMIN_PASSWORD_FILE=/run/secrets/drive_admin_password
+Environment=REDIS_HOST=drive-redis
+Secret=drive_db_password
+Secret=drive_admin_password
+
+[Service]
+Restart=always
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+===============================================================================
+ CCDVI DRIVE - POLÍTICA DE USO
+===============================================================================
+
+ O CCDVI Drive é o repositório local de DOCUMENTOS DE APOIO da operação DVI:
+ formulários em branco, manuais, procedimentos, escalas, atas, apresentações
+ e relatórios administrativos.
+
+ NÃO salve aqui dados de casos. Fichas AM/PM, entrevistas, fotografias,
+ documentos de pessoas desaparecidas, registros post mortem e comparações
+ devem ser registrados SOMENTE no Sistema DVI, que possui controle de acesso
+ por perfil, verificação de integridade e trilha de auditoria.
+
+ Fichas preenchidas à mão devem ser digitalizadas e anexadas ao caso
+ correspondente no Sistema DVI, e não armazenadas neste Drive.
+
+ Pastas:
+   - Formulários e Referências ... somente leitura (baixar e imprimir)
+   - Geral ........................ documentos de apoio de todas as equipes
+   - Comando, Ante Mortem, Post Mortem, TIC ... documentos de cada equipe
+
+ Links públicos e compartilhamento com servidores externos estão desativados.
+ Em caso de dúvida, procure a coordenação ou a equipe de TIC.
+===============================================================================
