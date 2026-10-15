@@ -27,6 +27,28 @@ somente na rede local, sem internet, e roda no mesmo servidor Linux do
 |---|---|
 | ![Pastas visíveis para a equipe PM](docs/imagens/02-pastas-da-equipe.png) | ![Formulários INTERPOL para baixar e imprimir](docs/imagens/03-formularios-somente-leitura.png) |
 
+## Recursos
+
+Telas capturadas da instalação de validação, com usuários e documentos fictícios.
+
+### Para as equipes
+
+| Visualizar formulários sem baixar | Política de uso em todas as pastas |
+|---|---|
+| ![Formulário PM da INTERPOL aberto no visualizador de PDF](docs/imagens/04-visualizador-pdf.png) | ![Arquivo de política de uso aberto no navegador](docs/imagens/05-politica-de-uso.png) |
+| **Compartilhamento: quem acessa e o que é permitido** | **Histórico de versões de cada arquivo** |
+| ![Painel de compartilhamento: grupo DVI-Todos, sem recompartilhamento](docs/imagens/06-detalhes-compartilhamento.png) | ![Versões anteriores de uma escala de plantão](docs/imagens/07-historico-de-versoes.png) |
+| **Atividades: quem criou, alterou ou excluiu** | **Busca por nome de arquivo** |
+| ![Registro de atividades dos arquivos](docs/imagens/08-atividades.png) | ![Busca filtrando os anexos do Guia INTERPOL](docs/imagens/09-busca.png) |
+| **Segurança da conta: troca de senha e sessões** | **Uso em tablet** |
+| ![Configurações de segurança da conta](docs/imagens/10-seguranca-da-conta.png) | ![Visão em tela de tablet](docs/imagens/13-tablet.png) |
+
+### Para a administração (TIC)
+
+| Contas e grupos por equipe | Política de compartilhamento aplicada |
+|---|---|
+| ![Lista de contas com os grupos DVI](docs/imagens/11-admin-contas-e-grupos.png) | ![Links públicos e recompartilhamento desativados](docs/imagens/12-admin-politica-compartilhamento.png) |
+
 ## Arquitetura
 
 ```mermaid
