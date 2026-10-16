@@ -3,7 +3,7 @@
  RUNBOOK DE INSTALACAO E EXECUCAO - UBUNTU 24.04 LTS
 ===============================================================================
 
- Versao do runbook ....: 1.0 (15/10/2026)
+ Versao do runbook ....: 1.1 (15/10/2026) - arquivo identificado como Drive
  Componentes ..........: Nextcloud 31.0.14, PostgreSQL 16.15, Redis 7.4.11
  Modo de execucao .....: conteineres Podman gerenciados pelo systemd (Quadlet),
                          no MESMO servidor do Sistema DVI, porta 8081.
@@ -181,6 +181,10 @@
  8. OPERACAO DO DIA A DIA
 -------------------------------------------------------------------------------
 
+ Diferente do Sistema DVI (servico ccdvi.service), o CCDVI Drive ja usa
+ systemd/Quadlet apos scripts/instalar.sh, com quatro servicos independentes:
+ drive-db, drive-redis, drive-app e drive-cron. Nao crie ccdvi-drive.service.
+
  Situacao dos servicos:
  $ sudo systemctl status drive-db drive-redis drive-app drive-cron --no-pager
  $ sudo podman ps
@@ -319,6 +323,8 @@
  - O Drive e o Sistema DVI sao independentes: cada um tem seu banco, seus
    servicos e seu backup.
  - Use somente dados ficticios ate a aprovacao institucional.
+ - O runbook do aplicativo principal e o arquivo
+   Runbook_Instalacao_Ubuntu_CCDVI_Sistema.txt, no repositorio do Sistema DVI.
 
 ===============================================================================
  FIM DO RUNBOOK

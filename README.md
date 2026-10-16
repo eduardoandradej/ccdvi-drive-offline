@@ -72,22 +72,126 @@ flowchart LR
 
 | Serviço no mesmo servidor | Porta |
 |---|---|
-| Sistema DVI (desenvolvimento / produção) | 5173 / 8080 |
+| Sistema DVI Offline (execução nativa de laboratório) | 5173 |
 | **CCDVI Drive** | **8081** |
 
 Versões fixadas: Nextcloud **31.0.14**, PostgreSQL **16.15**, Redis **7.4.11** (imagens oficiais).
 
-## Instalação
+## Preparação do servidor e ordem recomendada
 
-Passo a passo completo, com solução de problemas: **[Runbook_Instalacao_Ubuntu.txt](Runbook_Instalacao_Ubuntu.txt)**.
+Este projeto foi planejado para funcionar **no mesmo Ubuntu Server 24.04 LTS** do Sistema DVI Offline, mas utiliza banco de dados, serviços e backups próprios. O Drive é destinado exclusivamente a **documentos de apoio**.
+
+1. **Preparar a VM Ubuntu no Rocky Linux/KVM**, quando necessário: [script e runbook KVM no repositório do Sistema DVI](https://github.com/eduardoandradej/ccdvi-sistema-offline/tree/main/infra/kvm).
+2. **Instalar o Sistema DVI Offline**: [repositório e runbook do Sistema](https://github.com/eduardoandradej/ccdvi-sistema-offline).
+3. **Instalar o CCDVI Drive Offline**: siga o [Runbook de Instalação e Operação — CCDVI Drive](Runbook_Instalacao_Ubuntu_CCDVI_Drive.txt).
+
+> O provisionamento da VM acontece **no hospedeiro Rocky Linux**; os comandos de instalação do Drive acontecem **dentro da VM Ubuntu**. Não execute novamente o script de criação da VM em uma máquina já instalada.
+
+## Instalação do CCDVI Drive — Ubuntu Server 24.04 LTS
+
+O roteiro completo, incluindo firewall, testes, backup, restauração e instalação sem internet, está no **[Runbook_Instalacao_Ubuntu_CCDVI_Drive.txt](Runbook_Instalacao_Ubuntu_CCDVI_Drive.txt)**.
+
+### 1. Instalar pré-requisitos
 
 ```bash
-sudo apt install -y podman git
-git clone https://github.com/eduardoandradej/ccdvi-drive-offline.git && cd ccdvi-drive-offline
-cp config/usuarios.exemplo.csv config/usuarios.csv      # edite com os usuários reais
-sudo scripts/instalar.sh --usuarios config/usuarios.csv --formularios ~/ccdvi-sistema-offline/docs
+sudo apt update
+sudo apt install -y podman git curl
+podman --version
+ls -l /usr/libexec/podman/quadlet
+```
+
+### 2. Clonar o repositório (somente na primeira instalação)
+
+```bash
+cd ~
+git clone https://github.com/eduardoandradej/ccdvi-drive-offline.git
+cd ccdvi-drive-offline
+```
+
+Se o projeto já estiver clonado, não clone de novo: confira `git status` e, se estiver limpo, use `git pull --ff-only origin main`.
+
+### 3. Preparar usuários (opcional)
+
+```bash
+cp config/usuarios.exemplo.csv config/usuarios.csv
+nano config/usuarios.csv
+```
+
+O CSV de usuários é uma configuração **local**: não envie listas reais de pessoas ao GitHub. O modelo contém apenas informações fictícias.
+
+### 4. Instalar e validar
+
+Se o Sistema DVI estiver instalado e seus documentos de referência estiverem disponíveis:
+
+```bash
+sudo scripts/instalar.sh --usuarios config/usuarios.csv \
+  --formularios ~/ccdvi-sistema-offline/docs
 sudo scripts/testar.sh
 ```
+
+Ou, para uma instalação inicial sem lista de usuários e sem importar formulários:
+
+```bash
+sudo scripts/instalar.sh
+sudo scripts/testar.sh
+```
+
+A aplicação ficará disponível em `http://IP-DO-UBUNTU:8081`. A senha do administrador é gerada e armazenada em `/etc/ccdvi-drive/admin.senha` com acesso restrito ao administrador do servidor.
+
+> **Não confundir:** `sudo scripts/instalar.sh` é uma tarefa de instalação/configuração, **não** um comando que precisa ficar aberto no terminal. O Drive passa a funcionar como serviços systemd gerados pelo Podman/Quadlet.
+
+## Operação dos serviços — systemd / Quadlet
+
+O Sistema DVI usa o serviço `ccdvi.service`. O **Drive não precisa de um serviço adicional `ccdvi-drive.service`**: seu instalador já prepara quatro serviços de sistema independentes.
+
+| Componente | Unidade systemd | Função |
+|---|---|---|
+| Banco de dados | `drive-db.service` | PostgreSQL do Drive |
+| Cache | `drive-redis.service` | Redis |
+| Aplicação | `drive-app.service` | Nextcloud / Apache |
+| Tarefas agendadas | `drive-cron.service` | Rotinas do Nextcloud |
+
+```bash
+# Consultar o estado
+sudo systemctl status drive-db drive-redis drive-app drive-cron --no-pager
+
+# Iniciar na ordem das dependências
+sudo systemctl start drive-db drive-redis drive-app drive-cron
+
+# Parar na ordem inversa
+sudo systemctl stop drive-cron drive-app drive-redis drive-db
+
+# Reiniciar apenas o Nextcloud
+sudo systemctl restart drive-app
+
+# Acompanhar os logs (Ctrl+C apenas interrompe a visualização)
+sudo journalctl -u drive-app -f
+
+# Listar contêineres em execução
+sudo podman ps
+```
+
+Os arquivos de origem do Quadlet estão em `deploy/quadlet/`; após a instalação, são copiados para `/etc/containers/systemd/`. **Valide a inicialização automática após um reboot** seguindo a seção 9 do runbook; esse ponto não foi confirmado no ambiente original de testes.
+
+## Backup e manutenção
+
+Antes de atualizar ou modificar o ambiente, gere um backup dos dados e mantenha uma cópia em mídia protegida:
+
+```bash
+sudo scripts/backup.sh /srv/backups/drive
+```
+
+A restauração **substitui** o conteúdo atual e deve ser feita somente conforme a seção 10 do runbook. O backup pode conter credenciais internas e deve ter acesso restrito, preferencialmente com criptografia.
+
+Para atualizar a cópia do repositório (arquivos de documentação e scripts), primeiro verifique alterações locais:
+
+```bash
+cd ~/ccdvi-drive-offline
+git status
+git pull --ff-only origin main
+```
+
+Atualizar os arquivos do Git **não atualiza automaticamente** os contêineres nem aplica necessariamente novas unidades Quadlet. Para isso, leia as notas da versão e o runbook correspondente. Não reexecute comandos destrutivos sem backup.
 
 ## Scripts
 
@@ -124,4 +228,5 @@ deploy/quadlet/  unidades Quadlet: rede, volumes e os contêineres db, redis, ap
 politica/        texto da política de uso distribuído nas pastas
 scripts/         instalar, configurar, testar, backup, restaurar, desinstalar
 docs/imagens/    telas capturadas da instalação de validação
+Runbook_Instalacao_Ubuntu_CCDVI_Drive.txt   instalação, operação, backup e recuperação
 ```
